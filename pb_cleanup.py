@@ -1,10 +1,12 @@
 import requests
 import time
+import concurrent.futures
+
 
 # API details
 headers = {
 	'X-Version': '1',
-	'Authorization': 'Bearer INSERT-YOUR-TOKEN-HERE'
+	'Authorization': 'Bearer YOUR-TOKEN-HERE'
 }
 
 base_url = 'https://api.productboard.com'
@@ -13,28 +15,23 @@ delete_endpoint = '/companies/{company_id}'
 
 n = 0
 
-def delete_companies_in_batches(batch):
+def delete_company(company):
 	global n
-	i = 1
-	for company in batch:
-		company_id = company['id']
-		company_name = company['name']
-		
-		if company['sourceOrigin'] == 'salesforce':
-			delete_response = requests.delete(f'{base_url}{delete_endpoint.format(company_id=company_id)}', headers=headers)
-			if delete_response.status_code == 204:
-				print(f'{n}. Successfully deleted company: {company_name} // {company_id}')
-				n += 1
-			else:
-				print(f'Failed to delete company ID: {company_id}', delete_response.status_code)
-			
-			if i == 50:
-				time.sleep(1)  # Respect the rate limit
-				i = 1
-			else:
-				i += 1
-		else:
-			print(f'NOT FROM SALES FORCE: {company_name} // {company_id}')
+	company_id = company['id']
+	company_name = company['name']
+	
+	delete_response = requests.delete(f'{base_url}{delete_endpoint.format(company_id=company_id)}', headers=headers)
+	if delete_response.status_code == 204:
+		print(f'{n}. Successfully deleted company: {company_name} // {company_id}')
+		n+=1
+	else:
+		print(f'Failed to delete company ID: {company_id}', delete_response.status_code)
+	
+	return delete_response.status_code == 204
+	
+def delete_companies_in_batches(batch):
+	with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
+		future_to_company = {executor.submit(delete_company, company): company for company in batch}
 
 def get_and_delete_companies():
 	page = 1
