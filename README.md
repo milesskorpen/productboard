@@ -1,0 +1,1 @@
+This script connects to ProductBoard and deletes all companies without any related notes. This is helpful for cleaning your data up, particularly if you mistkenly imported too many companies from SAlesforce or another similar service. 
